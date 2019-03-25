@@ -19,7 +19,7 @@ Goshawk
 
 
 Goshawk (the bird)
-  *Goshawk is a bird ...*
+  *Goshawk is a bird sometimes seen in Oxfordshire*
 
 A Web Processing Service for UK station data.
 
