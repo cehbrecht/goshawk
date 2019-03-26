@@ -48,5 +48,5 @@ setup(name='goshawk',
       install_requires=reqs,
       entry_points={
           'console_scripts': [
-             'goshawk=goshawk.cli:cli',
+              'goshawk=goshawk.cli:cli',
           ]},)
