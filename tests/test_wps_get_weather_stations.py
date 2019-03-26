@@ -9,7 +9,7 @@ from goshawk.processes.wps_get_weather_stations import GetWeatherStations
 
 def test_wps_get_weather_stations():
     client = client_for(Service(processes=[GetWeatherStations()]))
-    datainputs = ""
+    datainputs = "Counties=cornwall"
     resp = client.get(
         "?service=WPS&request=Execute&version=1.0.0&identifier=GetWeatherStations&datainputs={}".format(
             datainputs))

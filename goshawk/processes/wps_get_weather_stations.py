@@ -1,15 +1,19 @@
-from pywps import Process, LiteralInput, ComplexOutput, BoundingBoxInput, Format
+import os.path
+
+from pywps import Process, LiteralInput, ComplexOutput, BoundingBoxInput
+from pywps import FORMATS
 from pywps.app.Common import Metadata
+
+from goshawk.util import get_station_list
 
 import logging
 LOGGER = logging.getLogger("PYWPS")
 
 
 UK_COUNTIES = [
-    'ABERDEENSHIRE',
-    'ALDERNEY',
-    'ANGUS',
-    'ANTRIM',
+    'cornwall',
+    'devon',
+    'wiltshire'
 ]
 
 
@@ -30,13 +34,12 @@ class GetWeatherStations(Process):
                                       ' This input will be ignored if counties are provided.',
                              crss=['epsg:4326', 'epsg:3035'],
                              min_occurs=0),
-            LiteralInput('Counties', 'Counties',
+            LiteralInput('counties', 'Counties',  # TOOO: issue in birdy with uppercase identifier
                          abstract='A list of counties within which to search for weather stations.',
                          data_type='string',
                          allowed_values=UK_COUNTIES,
                          min_occurs=0),
             LiteralInput('DataTypes', 'Data Types',
-                         abstract='A list of counties within which to search for weather stations.',
                          data_type='string',
                          allowed_values=['CLBD', 'CLBN', 'CLBR', 'CLBW', 'DCNN', 'FIXD',
                                          'ICAO', 'LPMS', 'RAIN', 'SHIP', 'WIND', 'WMO'],
@@ -44,9 +47,9 @@ class GetWeatherStations(Process):
         ]
         outputs = [
             ComplexOutput('output', 'Output',
-                          abstract='Station list as XML.',
+                          abstract='Station list.',
                           as_reference=True,
-                          supported_formats=[Format('text/xml')])]
+                          supported_formats=[FORMATS.TEXT])]
 
         super(GetWeatherStations, self).__init__(
             self._handler,
@@ -70,8 +73,39 @@ class GetWeatherStations(Process):
             status_supported=True
         )
 
-    @staticmethod
-    def _handler(request, response):
-        LOGGER.info("getting uk weather stations.")
-        response.outputs['output'].data = '<xml>Didcot</xml>'
+    def _handler(self, request, response):
+        # TODO: dry_run option
+
+        # Now set status to started
+        response.update_status('Job is now running', 0)
+
+        if 'counties' in request.inputs:
+            counties = [c.data for c in request.inputs['counties']]
+        else:
+            counties = []
+
+        if 'BBox' in request.inputs:
+            bbox = request.inputs['BBox'][0].data
+        else:
+            bbox = None
+
+        if 'DataTypes' in request.inputs:
+            data_types = [data_type.data for data_type in request.inputs['DataTypes']]
+        else:
+            data_types = []
+
+        # Add output file
+        stations_file = os.path.join(self.workdir, 'weather_stations.txt')
+        get_station_list(
+            counties=counties,
+            bbox=bbox,
+            data_types=data_types,
+            start_time=request.inputs['StartDateTime'][0].data,
+            end_time=request.inputs['EndDateTime'][0].data,
+            output_file=stations_file)
+
+        # We can log information at any time to the main log file
+        LOGGER.info('Written output file: {}'.format(stations_file))
+
+        response.outputs['output'].file = stations_file
         return response
